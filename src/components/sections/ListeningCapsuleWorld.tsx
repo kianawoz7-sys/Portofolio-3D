@@ -631,7 +631,7 @@ export function ListeningCapsuleWorld({
           data-complete={completed}
           style={playerStyle}
         >
-          <audio ref={audioRef} preload="metadata" src="/Music/Good-life.mpeg" />
+          <audio ref={audioRef} preload="none" src="/Music/Good-life.mpeg" />
 
           <div className="listening-capsule-player__topline font-label-caps">
             <span>PRIVATE LISTENING STATION / 05</span>
@@ -643,7 +643,17 @@ export function ListeningCapsuleWorld({
             <div className="listening-capsule-artifact">
               <div className="listening-capsule-artifact__orbit" aria-hidden="true"><i /><i /></div>
               <div className="listening-capsule-artifact__frame">
-                <img ref={artworkRef} src="/Meteor.png" alt="Good Life cover artwork" draggable={false} />
+                <img
+                  ref={artworkRef}
+                  src="/Meteor.webp"
+                  alt="Good Life cover artwork"
+                  width={941}
+                  height={1672}
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                  draggable={false}
+                />
               </div>
               <div className="listening-capsule-artifact__meta">
                 <span className="font-label-caps">PRESERVED MEMORY / 05</span>

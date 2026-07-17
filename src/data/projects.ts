@@ -14,6 +14,8 @@ export interface Project {
   compactDescription?: string;
   imagePath: string;
   imageAlt: string;
+  imageWidth: number;
+  imageHeight: number;
   technologyStack: string[];
   artifactLabel: string;
   ctaLabel: string;
@@ -37,8 +39,10 @@ export const PROJECTS: Project[] = [
     shortCategory: "APLIKASI WEB",
     description: "Website company profile untuk pusat kebugaran yang dirancang sebagai wajah digital Maximum Gym. Proyek ini menampilkan identitas brand melalui antarmuka yang modern, responsif, dan mudah dijelajahi.",
     compactDescription: "Website company profile modern dan responsif untuk memperkenalkan identitas digital Maximum Gym.",
-    imagePath: "/Maximum-Gym.png",
+    imagePath: "/Maximum-Gym.webp",
     imageAlt: "Preview website company profile Maximum Gym",
+    imageWidth: 1919,
+    imageHeight: 990,
     technologyStack: ["React", "Node.js", "Supabase", "Tailwind"],
     artifactLabel: "BRAND EXPERIENCE SYSTEM",
     ctaLabel: "KUNJUNGI WEBSITE",
@@ -55,6 +59,8 @@ export const PROJECTS: Project[] = [
     compactDescription: "Aplikasi manajemen organisasi untuk mengatur tugas, rapat, absensi, dokumen, dan kolaborasi anggota.",
     imagePath: "/Orgaku.jpeg",
     imageAlt: "Preview aplikasi manajemen organisasi OrgaKu",
+    imageWidth: 720,
+    imageHeight: 1600,
     technologyStack: ["React", "Firebase", "TypeScript", "Vite"],
     artifactLabel: "ORGANIZATION OPERATING SYSTEM",
     ctaLabel: "LIHAT STUDI KASUS",

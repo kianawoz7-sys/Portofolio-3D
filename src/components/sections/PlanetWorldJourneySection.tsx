@@ -1,8 +1,7 @@
 import type { MutableRefObject, ReactNode } from "react";
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, lazy, Suspense, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
-import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import type { MotionValue } from "motion/react";
 import { motion, useScroll, useSpring, useTransform } from "motion/react";
 import {
@@ -30,6 +29,7 @@ import {
 } from "three";
 
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
+import { usePageVisibility } from "../../hooks/usePageVisibility";
 import { useResponsiveProfile } from "../../hooks/useResponsiveProfile";
 import { PROJECTS } from "../../data/projects";
 import {
@@ -45,10 +45,13 @@ import {
 import { getRawJourneyProgress } from "../../lib/journeyNavigation";
 import { AboutArchiveContent } from "./AboutArchiveContent";
 import { ArchiveThreadDestination, ArchiveVault } from "./ArchiveVault";
-import { ListeningCapsuleWorld } from "./ListeningCapsuleWorld";
 import type { ListeningPlaybackSnapshot } from "./ListeningCapsuleWorld";
 
 type ProgressRef = MutableRefObject<number>;
+const ListeningCapsuleWorld = lazy(async () => ({
+  default: (await import("./ListeningCapsuleWorld")).ListeningCapsuleWorld,
+}));
+const CinematicBloom = lazy(() => import("../three/CinematicBloom"));
 type PlanetChapter = "memory" | "system" | "archive" | "listening" | "void" | "signal";
 
 interface PlanetJourneyContextValue {
@@ -1822,6 +1825,7 @@ function PlanetWorldScene({
   reducedMotion,
   isActive,
   profile,
+  shouldLoadListening,
 }: {
   progressRef: ProgressRef;
   archiveProgressRef: ProgressRef;
@@ -1830,6 +1834,7 @@ function PlanetWorldScene({
   reducedMotion: boolean;
   isActive: boolean;
   profile: "desktop" | "tablet" | "mobile";
+  shouldLoadListening: boolean;
 }) {
   return (
     <>
@@ -1867,17 +1872,21 @@ function PlanetWorldScene({
         reducedMotion={reducedMotion}
         isActive={isActive}
       />
-      <ListeningCapsuleWorld
-        progressRef={progressRef}
-        playbackRef={listeningPlaybackRef}
-        reducedMotion={reducedMotion}
-        isActive={isActive}
-      />
+      {shouldLoadListening ? (
+        <Suspense fallback={null}>
+          <ListeningCapsuleWorld
+            progressRef={progressRef}
+            playbackRef={listeningPlaybackRef}
+            reducedMotion={reducedMotion}
+            isActive={isActive}
+          />
+        </Suspense>
+      ) : null}
       <VoidLocation progressRef={progressRef} reducedMotion={reducedMotion} isActive={isActive} />
       <FinalSignal progressRef={progressRef} reducedMotion={reducedMotion} isActive={isActive} />
-      <EffectComposer multisampling={0}>
-        <Bloom intensity={0.72} luminanceThreshold={0.42} mipmapBlur radius={0.52} />
-      </EffectComposer>
+      <Suspense fallback={null}>
+        <CinematicBloom profile={profile} variant="world" />
+      </Suspense>
     </>
   );
 }
@@ -1897,7 +1906,10 @@ export function PlanetWorldJourneySection({ children }: { children: ReactNode })
     level: 0,
   });
   const [isActive, setIsActive] = useState(false);
+  const [shouldLoadListening, setShouldLoadListening] = useState(false);
+  const listeningLoadedRef = useRef(false);
   const reducedMotion = usePrefersReducedMotion();
+  const isPageVisible = usePageVisibility();
   const { profile, isLandscape } = useResponsiveProfile();
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end end"] });
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 58, damping: 24, mass: 0.42 });
@@ -1909,9 +1921,17 @@ export function PlanetWorldJourneySection({ children }: { children: ReactNode })
   const entryOpacity = useTransform(semanticProgress, [0, 0.018, 0.075, 0.125], [0, 1, 1, 0]);
   const entryY = useTransform(semanticProgress, [0, 0.04, 0.125], reducedMotion ? [0, 0, 0] : [22, 0, -32]);
 
-  useEffect(() => semanticProgress.on("change", (value) => {
-    progressRef.current = value;
-  }), [semanticProgress]);
+  useEffect(() => {
+    const updateProgress = (value: number) => {
+      progressRef.current = value;
+      if (!listeningLoadedRef.current && value >= 0.5) {
+        listeningLoadedRef.current = true;
+        setShouldLoadListening(true);
+      }
+    };
+    updateProgress(semanticProgress.get());
+    return semanticProgress.on("change", updateProgress);
+  }, [semanticProgress]);
 
   const previousViewportRef = useRef({ profile, isLandscape });
   useEffect(() => {
@@ -1946,7 +1966,7 @@ export function PlanetWorldJourneySection({ children }: { children: ReactNode })
       return;
     }
     const observer = new IntersectionObserver(([entry]) => setIsActive(entry.isIntersecting), {
-      rootMargin: "260px 0px",
+      rootMargin: "120px 0px",
       threshold: 0.005,
     });
     observer.observe(section);
@@ -1959,8 +1979,8 @@ export function PlanetWorldJourneySection({ children }: { children: ReactNode })
         <div className="planet-world__canvas-sticky">
           <Canvas
             camera={{ position: [0, 7.2, 28], fov: 54, near: 0.05, far: 190 }}
-              dpr={[1, profile === "desktop" ? 1.55 : profile === "tablet" ? 1.45 : 1.3]}
-            frameloop={isActive ? "always" : "never"}
+            dpr={[1, profile === "desktop" ? 1.5 : profile === "tablet" ? 1.4 : 1.2]}
+            frameloop={isActive && isPageVisible ? "always" : "never"}
             gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
             className="absolute inset-0 h-full w-full"
           >
@@ -1970,8 +1990,9 @@ export function PlanetWorldJourneySection({ children }: { children: ReactNode })
               archiveActiveRef={archiveActiveRef}
               listeningPlaybackRef={listeningPlaybackRef}
               reducedMotion={reducedMotion}
-              isActive={isActive}
+              isActive={isActive && isPageVisible}
               profile={profile}
+              shouldLoadListening={shouldLoadListening}
             />
           </Canvas>
           <div className="planet-world__vignette" />

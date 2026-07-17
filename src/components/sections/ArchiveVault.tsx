@@ -1,5 +1,5 @@
 import type { CSSProperties, MutableRefObject } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import {
@@ -154,8 +154,6 @@ export function ArchiveVault({
   const descriptionRef = useRef<HTMLDivElement>(null);
   const tagsRef = useRef<HTMLDivElement>(null);
   const actionRef = useRef<HTMLElement>(null);
-  const detailStateRef = useRef<"active" | "near" | "distant">("distant");
-  const [isNearby, setIsNearby] = useState(index < 2);
   const ranges = useMemo(() => getArchiveProgressWindow(index, totalProjectCount), [index, totalProjectCount]);
   const direction = resolveProjectComposition(project, index);
   const accentColor = project.accent?.color ?? "#9eddf1";
@@ -203,24 +201,11 @@ export function ArchiveVault({
     signalMaterial.dispose();
   }, [frameMaterial, glassMaterial, railMaterial, signalMaterial, structureMaterial]);
 
-  useEffect(() => {
-    const preloadedImage = new window.Image();
-    preloadedImage.src = project.imagePath;
-    void preloadedImage.decode?.().catch(() => undefined);
-  }, [project.imagePath]);
-
   useFrame((state) => {
     const group = groupRef.current;
     if (!group) return;
 
     const progress = localChapterProgress.current;
-    const activeIndex = getArchiveActiveProjectIndex(progress, totalProjectCount);
-    const distanceFromActive = Math.abs(index - activeIndex);
-    const nextDetailState = distanceFromActive === 0 ? "active" : distanceFromActive === 1 ? "near" : "distant";
-    const shouldBeNearby = archiveActive.current && distanceFromActive <= 1;
-    if (detailStateRef.current !== nextDetailState) detailStateRef.current = nextDetailState;
-    if (shouldBeNearby !== isNearby) setIsNearby(shouldBeNearby);
-
     const chapterStrength = archiveActive.current ? 1 : 0;
     const isLastVault = index === Math.min(totalProjectCount, 5) - 1;
     const approachDuration = Math.max(0.001, ranges.discoveryStart - ranges.approachStart);
@@ -361,15 +346,15 @@ export function ArchiveVault({
             <div className="archive-vault-panel__body">
               <div ref={visualRef} className="archive-vault-panel__visual">
                 <div className="archive-vault-panel__depth-frame" />
-                {isNearby ? (
-                  <img
-                    src={project.imagePath}
-                    alt={project.imageAlt}
-                    loading={index < 2 ? "eager" : "lazy"}
-                    decoding="async"
-                    fetchPriority={index === 0 ? "high" : "auto"}
-                  />
-                ) : null}
+                <img
+                  src={project.imagePath}
+                  alt={project.imageAlt}
+                  width={project.imageWidth}
+                  height={project.imageHeight}
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                />
                 <span className="archive-vault-panel__scanline" />
               </div>
 

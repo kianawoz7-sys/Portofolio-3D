@@ -22,7 +22,10 @@ export const AboutArchiveContent = forwardRef<HTMLDivElement>(function AboutArch
             transition={{ duration: 0.8, ease: "easeOut" }}
             alt="Denanda Ukky - Pengembang Full-stack"
             className="h-full w-full object-cover grayscale transition-all duration-700 hover:grayscale-0"
-            src="./Person1.jpeg"
+            src="/Person1.jpeg"
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
           />
         </div>
         <div className="memory-anchor-artifact__index font-label-caps">ARCHIVE / DU-01</div>

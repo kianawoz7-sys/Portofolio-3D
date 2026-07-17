@@ -56,7 +56,7 @@ The application follows this narrative order:
 
 A responsive company-profile website created as the digital identity of a fitness center. The project presents the Maximum Gym brand through a modern, accessible interface designed for clear exploration across screen sizes.
 
-![Maximum Gym project preview](./public/Maximum-Gym.png)
+![Maximum Gym project preview](./public/Maximum-Gym.webp)
 
 [Visit Maximum Gym](https://maximum-gym-black.vercel.app/)
 
@@ -100,10 +100,10 @@ No public OrgaKu deployment link is currently provided.
 ├── public/
 │   ├── Music/
 │   │   └── Good-life.mpeg
-│   ├── Hero1.png
-│   ├── Hero2.png
-│   ├── Maximum-Gym.png
-│   ├── Meteor.png
+│   ├── Hero1.webp
+│   ├── Hero2.webp
+│   ├── Maximum-Gym.webp
+│   ├── Meteor.webp
 │   ├── Orgaku.jpeg
 │   └── Person1.jpeg
 ├── src/

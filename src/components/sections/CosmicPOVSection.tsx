@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import {
   Fog,
   AdditiveBlending,
@@ -15,10 +14,14 @@ import {
 } from "three";
 
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
+import { usePageVisibility } from "../../hooks/usePageVisibility";
 import { useResponsiveProfile } from "../../hooks/useResponsiveProfile";
 import type { ResponsiveProfile } from "../../hooks/useResponsiveProfile";
+import "../../journey.css";
 
 type ProgressRef = React.MutableRefObject<number>;
+
+const CinematicBloom = lazy(() => import("../three/CinematicBloom"));
 
 const desktopCameraPoints = [
   new Vector3(0, 5.7, 15),
@@ -698,9 +701,9 @@ function CosmicPOVScene({
       <GlowNodes path={path} />
       <FocalOrb progressRef={progressRef} path={path} reducedMotion={reducedMotion} isActive={isActive} profile={profile} />
       {!reducedMotion && (
-        <EffectComposer multisampling={0}>
-          <Bloom intensity={0.74} luminanceThreshold={0.13} luminanceSmoothing={0.88} mipmapBlur />
-        </EffectComposer>
+        <Suspense fallback={null}>
+          <CinematicBloom profile={profile} variant="cosmic" />
+        </Suspense>
       )}
     </>
   );
@@ -711,10 +714,9 @@ export function CosmicPOVSection() {
   const progressRef = useRef(0);
   const entryFadeRef = useRef<HTMLDivElement>(null);
   const endFadeRef = useRef<HTMLDivElement>(null);
-  const hideCanvasTimerRef = useRef<number | null>(null);
   const [isActive, setIsActive] = useState(false);
-  const [shouldRenderCanvas, setShouldRenderCanvas] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
+  const isPageVisible = usePageVisibility();
   const { profile, isLandscape } = useResponsiveProfile();
 
   useEffect(() => {
@@ -723,19 +725,14 @@ export function CosmicPOVSection() {
 
     if (typeof IntersectionObserver === "undefined") {
       setIsActive(true);
-      setShouldRenderCanvas(true);
       return;
     }
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        const nextIsActive = entry.isIntersecting;
-        setIsActive(nextIsActive);
-        if (nextIsActive) {
-          setShouldRenderCanvas(true);
-        }
+        setIsActive(entry.isIntersecting);
       },
-      { rootMargin: "200px 0px", threshold: 0.01 },
+      { rootMargin: "120px 0px", threshold: 0.01 },
     );
 
     observer.observe(section);
@@ -744,30 +741,6 @@ export function CosmicPOVSection() {
       observer.disconnect();
     };
   }, []);
-
-  useEffect(() => {
-    if (hideCanvasTimerRef.current) {
-      window.clearTimeout(hideCanvasTimerRef.current);
-      hideCanvasTimerRef.current = null;
-    }
-
-    if (isActive) {
-      setShouldRenderCanvas(true);
-      return;
-    }
-
-    hideCanvasTimerRef.current = window.setTimeout(() => {
-      setShouldRenderCanvas(false);
-      hideCanvasTimerRef.current = null;
-    }, 760);
-
-    return () => {
-      if (hideCanvasTimerRef.current) {
-        window.clearTimeout(hideCanvasTimerRef.current);
-        hideCanvasTimerRef.current = null;
-      }
-    };
-  }, [isActive]);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -814,17 +787,15 @@ export function CosmicPOVSection() {
           className="absolute inset-0 transition-opacity duration-700 ease-out will-change-opacity"
           style={{ opacity: isActive ? 1 : 0 }}
         >
-          {shouldRenderCanvas && (
-            <Canvas
-              camera={{ position: [0, 5.5, 14], fov: 62, near: 0.01, far: 80 }}
-              dpr={[1, profile === "desktop" ? 1.75 : profile === "tablet" ? 1.5 : 1.35]}
-              frameloop={isActive && !reducedMotion ? "always" : "demand"}
-              gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
-              className="absolute inset-0 h-full w-full"
-            >
-              <CosmicPOVScene progressRef={progressRef} reducedMotion={reducedMotion} isActive={isActive} profile={profile} isLandscape={isLandscape} />
-            </Canvas>
-          )}
+          <Canvas
+            camera={{ position: [0, 5.5, 14], fov: 62, near: 0.01, far: 80 }}
+            dpr={[1, profile === "desktop" ? 1.5 : profile === "tablet" ? 1.4 : 1.2]}
+            frameloop={isActive && isPageVisible && !reducedMotion ? "always" : "demand"}
+            gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
+            className="absolute inset-0 h-full w-full"
+          >
+            <CosmicPOVScene progressRef={progressRef} reducedMotion={reducedMotion} isActive={isActive && isPageVisible} profile={profile} isLandscape={isLandscape} />
+          </Canvas>
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0"

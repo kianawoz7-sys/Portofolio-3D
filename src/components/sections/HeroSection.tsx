@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type React from "react";
 import { motion, useScroll, useTransform } from "motion/react";
 import gsap from "gsap";
@@ -15,6 +15,28 @@ function CenteredHeroVisual() {
   const glowRef = useRef<HTMLDivElement>(null);
   const blueLayerRef = useRef<HTMLDivElement>(null);
   const blueImageRef = useRef<HTMLImageElement>(null);
+  const [secondaryImageReady, setSecondaryImageReady] = useState(false);
+
+  useEffect(() => {
+    let idleId = 0;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const scheduleSecondaryImage = () => {
+      if (typeof window.requestIdleCallback === "function") {
+        idleId = window.requestIdleCallback(() => setSecondaryImageReady(true), { timeout: 2200 });
+      } else {
+        timeoutId = setTimeout(() => setSecondaryImageReady(true), 1);
+      }
+    };
+
+    if (document.readyState === "complete") scheduleSecondaryImage();
+    else window.addEventListener("load", scheduleSecondaryImage, { once: true });
+
+    return () => {
+      window.removeEventListener("load", scheduleSecondaryImage);
+      if (idleId) window.cancelIdleCallback(idleId);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, []);
 
   useLayoutEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -202,9 +224,14 @@ function CenteredHeroVisual() {
         }}
       >
         <img
-          src="/Hero1.png"
+          src="/Hero1.webp"
           alt=""
           aria-hidden="true"
+          width={2400}
+          height={1350}
+          loading="eager"
+          decoding="async"
+          fetchPriority="high"
           className="hero-background hero-background--base absolute inset-0 h-full w-full object-cover"
           style={{
             objectPosition: "center",
@@ -231,9 +258,13 @@ function CenteredHeroVisual() {
       >
         <img
           ref={blueImageRef}
-          src="/Hero2.png"
+          src={secondaryImageReady ? "/Hero2.webp" : undefined}
           alt=""
           aria-hidden="true"
+          width={2400}
+          height={1350}
+          decoding="async"
+          fetchPriority="low"
           className="hero-background hero-background--blue absolute -inset-[8%] h-[116%] w-[116%] object-cover"
           style={{
             objectPosition: "center",
@@ -260,6 +291,10 @@ function CenteredHeroVisual() {
         ref={catRef}
         src="/Kucing-Hero-Cropped.png"
         alt="Black cat"
+        width={195}
+        height={232}
+        decoding="async"
+        fetchPriority="low"
         className="hero-cat absolute left-1/2 top-1/2 h-auto max-w-none"
         style={{
           width: "clamp(180px, 18vw, 300px)",
